@@ -1,0 +1,6 @@
+1 Adam 10000
+2 Bethany 20000
+3 Charles 30000
+4 Derek 40000
+5 Edward 50000
+6 Francis 6000
