@@ -34,8 +34,9 @@ int main(int argc, char *argv[])
 	//create instance of Transaction
 	Transaction current;
 
-	//create message reply
+	//create reply message and reply Record object
 	char reply[50];
+	Record received_rec;
 
 	//create the client socket
         int client_socket;
@@ -52,7 +53,6 @@ int main(int argc, char *argv[])
 	
 	//open the Transactions.txt file
 	ifstream trans_file("Transactions.txt");
-	Record received_rec;
 
 	//initialise while loop to read from the Transactions.txt & send the data to server
 	while(trans_file>>current.timestamp>>current.acc_no>>current.action>>current.amount)
@@ -63,10 +63,10 @@ int main(int argc, char *argv[])
 		else
 			cout<<"Transaaction: Deposit "<<current.amount<<" dollars."<<endl;
 		send(client_socket, &current, sizeof(current), 0);	
-		recv(client_socket, &reply, sizeof(reply), 0);
-		cout<<reply<<endl;
 		recv(client_socket, &received_rec, sizeof(received_rec), 0);
-		cout<<endl<<received_rec.name<<endl<<received_rec.acc_no<<endl<<received_rec.balance<<endl;
+		recv(client_socket, &reply, sizeof(reply), 0);
+		cout<<endl<<"Message from Server:"<<endl<<reply<<endl;
+		cout<<"There is now "<<received_rec.balance<<" dollars in "<<received_rec.name<<"'s account. (Account Number: "<<received_rec.acc_no<<")"<<endl;
 	}
 
 	//transaction object used to signal the end of sending data from client

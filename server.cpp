@@ -41,7 +41,6 @@ void *thread_func(void *arg)
 	int client_socket = *(int *) arg;
 	Transaction current;
 	char status[21];
-	Record rec_status;
 
 	//repeatedly receive transactions from client in a while loop
 	while(1)
@@ -71,18 +70,12 @@ void *thread_func(void *arg)
 						pthread_mutex_unlock(&lock);
 						cout<<"The new balance is: "<<records[i].balance<<endl<<endl;
 						strcpy(status, "Transaction success!");
-						rec_status.acc_no = records[i].acc_no;
-						rec_status.balance = records[i].balance;
-                                        	strcpy(rec_status.name, records[i].name);
 					}
 					else
 					{
 						cout<<"Unable to withdraw "<<current.amount<<" dollars from "<<records[i].name<<"'s account due to insufficient balance."<<endl;
 					cout<<"The balance is: "<<records[i].balance<<endl<<endl;
 						strcpy(status, "Transaction failure!");
-						rec_status.acc_no = records[i].acc_no;
-						rec_status.balance = records[i].balance;
-                                        	strcpy(rec_status.name, records[i].name);
 					}
 				}		
 				else
@@ -94,14 +87,11 @@ void *thread_func(void *arg)
 					pthread_mutex_unlock(&lock);
 					cout<<"The new balance is: "<<records[i].balance<<endl<<endl;
 					strcpy(status, "Transaction success!");
-					rec_status.acc_no = records[i].acc_no;
-					rec_status.balance = records[i].balance;
-					strcpy(rec_status.name, records[i].name);
 				}
+				send(client_socket, &records[i], sizeof(records[i]), 0);
+				send(client_socket, &status, sizeof(status), 0);
 			}
 		}
-		send(client_socket, &status, sizeof(status), 0);
-		send(client_socket, &records[i], sizeof(records[i]), 0);
 	}
 	
 	//exit the thread without any return
