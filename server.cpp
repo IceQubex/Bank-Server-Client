@@ -88,6 +88,8 @@ void *thread_func(void *arg)
 					cout<<"The new balance is: "<<records[i].balance<<endl<<endl;
 					strcpy(status, "Transaction success!");
 				}
+
+				//send the transaction status and the updated records back to the client
 				send(client_socket, &records[i], sizeof(records[i]), 0);
 				send(client_socket, &status, sizeof(status), 0);
 			}
