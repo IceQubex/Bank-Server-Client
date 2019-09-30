@@ -54,17 +54,25 @@ int main(int argc, char *argv[])
 	//open the Transactions.txt file
 	ifstream trans_file("Transactions.txt");
 
-	//initialise while loop to read from the Transactions.txt & send the data to server
+	//initialise while loop to read from the Transactions.txt, store in Transaction object & send the data to server
 	while(trans_file>>current.timestamp>>current.acc_no>>current.action>>current.amount)
 	{
+		
+		//read the transaction data and display the data
 		cout<<endl<<"Timestamp: "<<current.timestamp<<endl<<"Account Number: "<<current.acc_no<<endl;
 		if (current.action == 'w')
 			cout<<"Transaction: Withdraw "<<current.amount<<" dollars."<<endl;
 		else
 			cout<<"Transaaction: Deposit "<<current.amount<<" dollars."<<endl;
+		
+		//send the transaction data to the server
 		send(client_socket, &current, sizeof(current), 0);	
+		
+		//wait for replies from the server regarding the transaction status and the updated account details
 		recv(client_socket, &received_rec, sizeof(received_rec), 0);
 		recv(client_socket, &reply, sizeof(reply), 0);
+
+		//display the replies from the server
 		cout<<endl<<"Message from Server:"<<endl<<reply<<endl;
 		cout<<"There is now "<<received_rec.balance<<" dollars in "<<received_rec.name<<"'s account. (Account Number: "<<received_rec.acc_no<<")"<<endl;
 	}
