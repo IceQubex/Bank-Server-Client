@@ -29,7 +29,7 @@ int number_of_acc = 0;
 //create the global records array that the information from "Records.txt" will be stored in
 Record records[100];
 
-//create the mutex 
+//create the mutex lock
 pthread_mutex_t lock;
 
 //declare and define the thread function
@@ -174,15 +174,17 @@ int main(int argc, char *argv[])
 	int client_socket;
 	pthread_t thread_id;
 	
-	//for waiting animation
+	//thread parameters for waiting animation
 	pthread_t wait_id;
 	pthread_create(&wait_id, NULL, idle_func, NULL);
 	pthread_detach(wait_id);
+	
+	//thread parameters for adding interest at regular intervals
 	pthread_t interest_id;
 	pthread_create(&interest_id, NULL, interest_func, NULL);
 	pthread_detach(interest_id);
 
-	//receive data from the connected client process
+	//receive data from the connected client process and spawn a new thread to handle the client's request
 	while(true)
 	{
 		
@@ -192,7 +194,7 @@ int main(int argc, char *argv[])
 		pthread_detach(thread_id);
 	}
 	
-	//close and exit the server process
+	//close the socket and exit the server process
 	close(server_socket);
 	return 0;
 }
