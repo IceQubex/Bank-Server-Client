@@ -6,6 +6,10 @@
 #include<sys/types.h>
 #include<sys/socket.h>
 #include<netinet/in.h>
+#include<time.h>
+#include<sys/time.h>
+
+#define PORT 12345
 
 using namespace std;
 
@@ -24,10 +28,10 @@ struct Record{
 //main function definition
 int main(int argc, char *argv[])
 {
-	//error handling for incorrect number of arguments
+	
 	if(argc<2)
 	{
-		cout<<"Usage: "<<argv[0]<<" <port number>"<<endl;
+		cout<<"Please provide a request rate in seconds."<<endl;
 		exit(1);
 	}
 	
@@ -38,6 +42,17 @@ int main(int argc, char *argv[])
 	char reply[50];
 	Record received_rec;
 
+	//read the parameter from the commandline which sets the request rate
+	float req = atof(argv[1]);
+
+	//create the timeval structures and other variables for time assessment
+	timeval start, end;
+	int micro_seconds[100];
+	int i;
+	int num_of_trans=0;
+	long sum=0;
+	float average;
+
 	//create the client socket
         int client_socket;
         client_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -45,7 +60,7 @@ int main(int argc, char *argv[])
 	//assign the socket parameters
         struct sockaddr_in client_address;
 	client_address.sin_family = AF_INET;
-        client_address.sin_port = htons(atoi(argv[1]));
+        client_address.sin_port = htons(PORT);
         client_address.sin_addr.s_addr=INADDR_ANY;
 
         //connect to the socket and send data
@@ -64,7 +79,9 @@ int main(int argc, char *argv[])
 			cout<<"Transaction: Withdraw "<<current.amount<<" dollars."<<endl;
 		else
 			cout<<"Transaaction: Deposit "<<current.amount<<" dollars."<<endl;
-		
+		//initiate the timer counter
+		gettimeofday(&start, NULL);
+
 		//send the transaction data to the server
 		send(client_socket, &current, sizeof(current), 0);	
 		
@@ -72,15 +89,34 @@ int main(int argc, char *argv[])
 		recv(client_socket, &received_rec, sizeof(received_rec), 0);
 		recv(client_socket, &reply, sizeof(reply), 0);
 
+		//stop the timer counter
+		gettimeofday(&end, NULL);
+
+		//calculate time for each request
+		micro_seconds[num_of_trans] = (end.tv_sec-start.tv_sec)*1000000 + (end.tv_usec - start.tv_usec);
+
 		//display the replies from the server
 		cout<<endl<<"Message from Server:"<<endl<<reply<<endl;
 		cout<<"There is now "<<received_rec.balance<<" dollars in "<<received_rec.name<<"'s account. (Account Number: "<<received_rec.acc_no<<")"<<endl;
+		cout<<"The time taken is "<<micro_seconds[num_of_trans]<<" microseconds."<<endl;
+		
+		//throttle the request rate according to the input parameters
+		usleep(1000000*req);
+		num_of_trans++;
 	}
 
 	//transaction object used to signal the end of sending data from client
-	Transaction end;
-	end.timestamp = -1; end.acc_no = 0; end.action = 'x'; end.amount = 0;
-	send(client_socket, &end, sizeof(end), 0);
+	Transaction final;
+	final.timestamp = -1; final.acc_no = 0; final.action = 'x'; final.amount = 0;
+	send(client_socket, &final, sizeof(final), 0);
+
+	//calculate the average time taken for each transaction
+	for(i=0;i<num_of_trans;i++)
+	{
+		sum += micro_seconds[i];
+	}
+	average = sum/num_of_trans;
+	cout<<endl<<endl<<"The average time taken per transaction is "<<average<<" microseconds."<<endl;
 
 	//close the file
 	trans_file.close();

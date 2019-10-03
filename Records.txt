@@ -1,6 +1,6 @@
-1 Adam 10000
-2 Bethany 20000
-3 Charles 30000
-4 Derek 40000
-5 Edward 50000
-6 Francis 6000
+1 John 1000000
+2 Rebba 5000
+3 Ashley 30000
+4 Jake 7000
+5 Rebecca 800
+6 Sam 10000

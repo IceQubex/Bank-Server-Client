@@ -8,6 +8,12 @@
 #include<sys/types.h>
 #include<netinet/in.h>
 #include<pthread.h>
+#include<time.h>
+#include<sys/time.h>
+
+
+//to define the port number
+#define PORT 12345
 
 using namespace std;
 
@@ -30,7 +36,7 @@ int number_of_acc = 0;
 Record records[100];
 
 //create the mutex lock
-pthread_mutex_t lock;
+static pthread_mutex_t mutex;
 
 //declare and define the thread function
 void *thread_func(void *arg)
@@ -41,6 +47,9 @@ void *thread_func(void *arg)
 	int client_socket = *(int *) arg;
 	Transaction current;
 	char status[21];
+	timeval start, end;
+	long seconds = 0;
+	long micro_seconds = 0;
 
 	//repeatedly receive transactions from client in a while loop
 	while(1)
@@ -59,22 +68,23 @@ void *thread_func(void *arg)
 			if (records[i].acc_no == current.acc_no)
 			{
 				cout<<"\n\nCurrently operating in "<<records[i].name<<"'s account: "<<endl;
+				
+				gettimeofday(&start, NULL);
+				pthread_mutex_lock(&mutex);
 				if (current.action == 'w')
 				{
 					if (records[i].balance>=current.amount)
 					{
 						cout<<"Withdrawing "<<current.amount<<" dollars from "<<records[i].name<<"'s account."<<endl;
 						cout<<"The old balance is: "<<records[i].balance<<endl;
-						pthread_mutex_lock(&lock);
 						records[i].balance-=current.amount;
-						pthread_mutex_unlock(&lock);
 						cout<<"The new balance is: "<<records[i].balance<<endl<<endl;
 						strcpy(status, "Transaction success!");
 					}
 					else
 					{
 						cout<<"Unable to withdraw "<<current.amount<<" dollars from "<<records[i].name<<"'s account due to insufficient balance."<<endl;
-					cout<<"The balance is: "<<records[i].balance<<endl<<endl;
+						cout<<"The balance is: "<<records[i].balance<<endl<<endl;
 						strcpy(status, "Transaction failure!");
 					}
 				}		
@@ -82,12 +92,18 @@ void *thread_func(void *arg)
 				{
 					cout<<"Depositing "<<current.amount<<" dollars in "<<records[i].name<<"'s account."<<endl;
 					cout<<"The old balance is: "<<records[i].balance<<endl;
-					pthread_mutex_lock(&lock);
 					records[i].balance+=current.amount;
-					pthread_mutex_unlock(&lock);
 					cout<<"The new balance is: "<<records[i].balance<<endl<<endl;
 					strcpy(status, "Transaction success!");
 				}
+				pthread_mutex_unlock(&mutex);
+				gettimeofday(&end, NULL);
+				seconds = (end.tv_sec - start.tv_sec);
+                		micro_seconds = (end.tv_usec - start.tv_usec);
+                		if (micro_seconds<0)
+                        		micro_seconds+=1000000;
+				cout<<"Transaction Complete!"<<endl;
+				cout<<"The time taken is "<<seconds<<" seconds and "<<micro_seconds<<" microseconds."<<endl;
 
 				//send the transaction status and the updated records back to the client
 				send(client_socket, &records[i], sizeof(records[i]), 0);
@@ -117,33 +133,30 @@ void *idle_func(void *arg)
 }
 
 //thread to add interest to all the bank accounts after fixed interval of time
-void *interest_func(void *arg)
+/*void *interest_func(void *arg)
 {
+	
 	while(1)
 	{
 		sleep(30);
+		pthread_mutex_lock(&mutex);
 		cout<<endl<<endl<<"Bank server now calculating and adding interest to accounts!"<<endl<<endl;
 		int i;
 		for(i=0;i<number_of_acc;i++)
 		{
-			pthread_mutex_lock(&lock);
+			//pthread_mutex_lock(&mutex);
 			records[i].balance*=1.1;
-			pthread_mutex_unlock(&lock);
+			//pthread_mutex_unlock(&mutex);
 			cout<<"Name: "<<records[i].name<<endl<<"Account Number: "<<records[i].acc_no<<endl<<"New Balance: "<<records[i].balance<<endl<<endl;
 		}
 		cout<<endl<<endl<<"Bank server is done with adding interest!"<<endl<<endl;
+		pthread_mutex_unlock(&mutex);
 	}
-}
+}*/
 
 //main process
 int main(int argc, char *argv[])
 {
-	//check for proper calling for the server
-	if (argc<2)
-	{
-		cout<<"Usage: "<<argv[0]<<" <port number>"<<endl;
-		exit(1);
-	}
 	
 	//accept input from the "Records.txt" file and store it in an array of Record structure
 	ifstream rec_file("Records.txt");
@@ -163,7 +176,7 @@ int main(int argc, char *argv[])
 	//assign the socket parameters
 	struct sockaddr_in server_address;
 	server_address.sin_family = AF_INET;
-	server_address.sin_port = htons(atoi(argv[1]));
+	server_address.sin_port = htons(PORT);
 	server_address.sin_addr.s_addr = INADDR_ANY;
 
 	//connect to the socket and start listening
@@ -180,9 +193,9 @@ int main(int argc, char *argv[])
 	pthread_detach(wait_id);
 	
 	//thread parameters for adding interest at regular intervals
-	pthread_t interest_id;
-	pthread_create(&interest_id, NULL, interest_func, NULL);
-	pthread_detach(interest_id);
+	//pthread_t interest_id;
+	//pthread_create(&interest_id, NULL, interest_func, NULL);
+	//pthread_detach(interest_id);
 
 	//receive data from the connected client process and spawn a new thread to handle the client's request
 	while(true)
